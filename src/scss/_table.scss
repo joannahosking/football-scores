@@ -1,0 +1,65 @@
+.table {
+    padding: 2rem;
+    background: var(--dark-200);
+
+    table {
+        width: 100%;
+        border-spacing: 1rem;
+
+        th {
+            color: var(--light-200);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .position {
+            position: relative;
+            padding: 0 0.5rem;
+            border-radius: 2px;
+            overflow: hidden;
+            text-align: center;
+
+            &:before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 2px;
+                height: 100%;
+            }
+
+            &.promotion---champions-league:before {
+                background: var(--accent-100);
+            }
+
+            &.promotion---europa-league:before {
+                background: yellow;
+            }
+
+            &[class*="relegation-"]:before {
+                background: red;
+            }
+
+            &[class*="promotion-"], &[class*="relegation"] {
+                background: var(--dark-300);
+            }
+        }
+
+        .club {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: max-content;
+            white-space: nowrap;
+
+            img {
+                width: 1.5rem;
+                height: auto;
+            }
+        }
+
+        .games, .points {
+            text-align: center;
+        }
+    }
+}
