@@ -9,24 +9,79 @@ const Table = (props) => {
   let season =
     date.getMonth() < 7 ? date.getFullYear() - 1 : date.getFullYear();
 
-  useEffect(() => {
-    const config = {
-      method: "get",
-      url: "https://v3.football.api-sports.io/standings",
-      params: {
-        league: currentLeague.id,
-        season: season,
-      },
-      headers: {
-        "x-rapidapi-key": import.meta.env.VITE_FOOTBALL_KEY,
-        "x-rapidapi-host": "v3.football.api-sports.io",
-      },
-    };
+  const config = {
+    method: "get",
+    url: "https://v3.football.api-sports.io/standings",
+    params: {
+      league: currentLeague.id,
+      season: season,
+    },
+    headers: {
+      "x-rapidapi-key": import.meta.env.VITE_FOOTBALL_KEY,
+      "x-rapidapi-host": "v3.football.api-sports.io",
+    },
+  };
 
-    axios(config)
+  useEffect(() => {
+    // checking if we have standings in the database
+    axios({
+      method: "get",
+      url: `/api/tables/${currentLeague.id}`,
+    })
       .then((res) => {
-        setStandings(res.data.response[0].league.standings[0]);
-        console.log(res.data.response);
+        if (res.data.length > 0) {
+          // checking if they're old
+          if (
+            Math.floor(
+              (new Date() - Date.parse(res.data[0].lastUpdated)) /
+                1000 /
+                60 /
+                60
+            ) > 1
+          ) {
+            // replacing them because they're more than 1 hour old
+            axios(config)
+              .then((res) => {
+                setStandings(res.data.response[0].league.standings[0]);
+
+                axios({
+                  method: "update",
+                  url: `/api/tables`,
+                  data: {
+                    standings: res.data.response[0].league.standings[0],
+                  },
+                })
+                  .then((res) => {
+                    console.log(res);
+                  })
+                  .catch((err) => console.error(err));
+              })
+              .catch((err) => console.error(err));
+          } else {
+            // setting them because they're fresh
+            setStandings(res.data[0].standings);
+          }
+        } else {
+          // saving them because they don't exist
+          axios(config)
+            .then((res) => {
+              setStandings(res.data.response[0].league.standings[0]);
+
+              axios({
+                method: "post",
+                url: `/api/tables`,
+                data: {
+                  league: currentLeague.id,
+                  standings: res.data.response[0].league.standings[0],
+                },
+              })
+                .then((res) => {
+                  console.log(res);
+                })
+                .catch((err) => console.error(err));
+            })
+            .catch((err) => console.error(err));
+        }
       })
       .catch((err) => console.error(err));
   }, [currentLeague]);
@@ -46,7 +101,18 @@ const Table = (props) => {
           {standings &&
             standings.map((position, key) => (
               <tr key={key}>
-                <td className={`position ${position.description ? position.description.replace(/ \(.*/, '').replace(/\s/g, '-').toLowerCase() : ''}`}>{key + 1}</td>
+                <td
+                  className={`position ${
+                    position.description
+                      ? position.description
+                          .replace(/ \(.*/, "")
+                          .replace(/\s/g, "-")
+                          .toLowerCase()
+                      : ""
+                  }`}
+                >
+                  {key + 1}
+                </td>
                 <td className="club">
                   <img
                     src={`https://media.api-sports.io/football/teams/${position.team.id}.png`}
